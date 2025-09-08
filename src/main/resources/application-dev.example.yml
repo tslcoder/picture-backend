@@ -1,3 +1,0 @@
-tencent:
-  secretId: ${TENCENT_SECRET_ID}
-  secretKey: ${TENCENT_SECRET_KEY}
