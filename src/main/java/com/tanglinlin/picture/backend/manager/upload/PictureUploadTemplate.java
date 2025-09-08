@@ -19,6 +19,7 @@ import java.io.File;
 import java.util.Date;
 
 /**
+ * 设计模式：模版方法模式
  * @program: tanglin-picture-backend
  * @ClassName PictureUploadTemplate
  * @description:

@@ -32,7 +32,7 @@ public class UrlPictureUpload extends PictureUploadTemplate {
     protected void validPicture(Object inputSource) {
         String url = (String) inputSource;
         ThrowUtils.throwIf(StrUtil.isBlank(url),
-                ErrorCode.PARAMS_ERROR,"图片地址为空");
+                ErrorCode.PARAMS_ERROR, "图片地址为空");
         try {
             //1.验证URL格式
             new URL(url);
@@ -47,7 +47,7 @@ public class UrlPictureUpload extends PictureUploadTemplate {
         try {
             response = HttpUtil.createRequest(Method.HEAD, url).execute();
             if (response.getStatus() != HttpStatus.HTTP_OK)
-                return;
+                ThrowUtils.throwIf(true, ErrorCode.PARAMS_ERROR, "上传图片地址不存在");
             //4.校验文件类型
             String contentType = response.header("Content-Type");
             if (StrUtil.isNotBlank(contentType)) {
@@ -82,6 +82,25 @@ public class UrlPictureUpload extends PictureUploadTemplate {
     @Override
     protected String getOriginalFilename(Object inputSource) {
         String url = (String) inputSource;
-        return FileUtil.mainName(url);
+        HttpResponse response = null;
+        String extend = "";
+        try {
+            response = HttpUtil.createRequest(Method.HEAD, url).execute();
+            if (response.getStatus() != HttpStatus.HTTP_OK)
+                ThrowUtils.throwIf(true, ErrorCode.PARAMS_ERROR, "上传图片地址不存在");
+            //4.校验文件类型
+            String contentType = response.header("Content-Type");
+            if (StrUtil.isNotBlank(contentType)) {
+                //允许的图片类型
+                List<String> allowImageList = Arrays.asList("image/jpeg", "image/ipg", "image/png", "image/webp");
+                ThrowUtils.throwIf(!allowImageList.contains(contentType), ErrorCode.PARAMS_ERROR, "上传图片格式不支持");
+            }
+            extend = contentType.split("/")[1];
+        } finally {
+            if (ObjectUtil.isNotNull(response)) {
+                response.close();
+            }
+        }
+        return FileUtil.mainName(url) + "." + extend;
     }
 }

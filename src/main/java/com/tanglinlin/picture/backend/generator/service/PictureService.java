@@ -4,10 +4,7 @@ import com.baomidou.mybatisplus.extension.plugins.pagination.Page;
 import com.baomidou.mybatisplus.extension.service.IService;
 import com.tanglinlin.picture.backend.generator.domain.Picture;
 import com.tanglinlin.picture.backend.generator.domain.User;
-import com.tanglinlin.picture.backend.model.dto.picture.PictureQueryRequest;
-import com.tanglinlin.picture.backend.model.dto.picture.PictureReviewRequest;
-import com.tanglinlin.picture.backend.model.dto.picture.PictureUpdateRequest;
-import com.tanglinlin.picture.backend.model.dto.picture.PictureUploadRequest;
+import com.tanglinlin.picture.backend.model.dto.picture.*;
 import com.tanglinlin.picture.backend.model.enums.PictureReviewStatusEnum;
 import com.tanglinlin.picture.backend.model.vo.PictureVO;
 import jakarta.servlet.http.HttpServletRequest;
@@ -35,4 +32,7 @@ public interface PictureService extends IService<Picture> {
     void doPictureReview(PictureReviewRequest pictureReviewRequest,User loginUser);
 
     void fillReviewParams(Picture picture,User loginUser);
+
+    Integer uploadPictureByBatch(PictureUploadByBatchRequest pictureUploadByBatchRequest,
+                                 User loginUser);
 }
