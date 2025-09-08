@@ -7,6 +7,7 @@ import com.tanglinlin.picture.backend.generator.domain.User;
 import com.tanglinlin.picture.backend.model.dto.picture.PictureQueryRequest;
 import com.tanglinlin.picture.backend.model.dto.picture.PictureReviewRequest;
 import com.tanglinlin.picture.backend.model.dto.picture.PictureUpdateRequest;
+import com.tanglinlin.picture.backend.model.dto.picture.PictureUploadRequest;
 import com.tanglinlin.picture.backend.model.enums.PictureReviewStatusEnum;
 import com.tanglinlin.picture.backend.model.vo.PictureVO;
 import jakarta.servlet.http.HttpServletRequest;
@@ -19,8 +20,8 @@ import org.springframework.web.multipart.MultipartFile;
 */
 public interface PictureService extends IService<Picture> {
 
-    PictureVO uploadPicture(MultipartFile multipartFile,
-                            PictureUpdateRequest pictureUpdateRequest,
+    PictureVO uploadPicture(Object inputSource,
+                            PictureUploadRequest pictureUploadRequest,
                             User loginUser);
 
     QueryWrapper<Picture> getQueryWrapper(PictureQueryRequest pictureQueryRequest);

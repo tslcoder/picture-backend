@@ -14,10 +14,7 @@ import com.tanglinlin.picture.backend.generator.domain.Picture;
 import com.tanglinlin.picture.backend.generator.domain.User;
 import com.tanglinlin.picture.backend.generator.service.PictureService;
 import com.tanglinlin.picture.backend.generator.service.UserService;
-import com.tanglinlin.picture.backend.model.dto.picture.PictureEditRequest;
-import com.tanglinlin.picture.backend.model.dto.picture.PictureQueryRequest;
-import com.tanglinlin.picture.backend.model.dto.picture.PictureReviewRequest;
-import com.tanglinlin.picture.backend.model.dto.picture.PictureUpdateRequest;
+import com.tanglinlin.picture.backend.model.dto.picture.*;
 import com.tanglinlin.picture.backend.model.enums.PictureReviewStatusEnum;
 import com.tanglinlin.picture.backend.model.vo.PictureVO;
 import io.swagger.v3.oas.annotations.Operation;
@@ -47,15 +44,29 @@ public class PictureController {
     private PictureService pictureService;
 
     @PostMapping("/upload")
-    @AuthCheck(mustRole = "admin")
     @Operation(summary = "图片上传", description = "图片上传，只能管理员用户")
     public BaseResponse<PictureVO> uploadPicture(@RequestPart("file") MultipartFile multipartFile,
-                                                 PictureUpdateRequest pictureUpdateRequest,
+                                                 PictureUploadRequest pictureUploadRequest,
                                                  HttpServletRequest request) {
         User loginUser = userService.getLoginUser(request);
-        PictureVO pictureVO = pictureService.uploadPicture(multipartFile, pictureUpdateRequest, loginUser);
+        PictureVO pictureVO = pictureService.uploadPicture(multipartFile, pictureUploadRequest, loginUser);
         return ResultUtils.success(pictureVO);
     }
+
+    /**
+     * 通过 URL 上传图片（可重新上传）
+     */
+    @PostMapping("/upload/url")
+    @Operation(summary = "图片上传", description = "图片上传")
+    public BaseResponse<PictureVO> uploadPictureByUrl(
+            @RequestBody PictureUploadRequest pictureUploadRequest,
+            HttpServletRequest request) {
+        User loginUser = userService.getLoginUser(request);
+        String fileUrl = pictureUploadRequest.getFileUrl();
+        PictureVO pictureVO = pictureService.uploadPicture(fileUrl, pictureUploadRequest, loginUser);
+        return ResultUtils.success(pictureVO);
+    }
+
 
     @PostMapping("/delete")
     @Operation(summary = "删除图片", description = "删除图片，只能管理员或者本人可以删除")

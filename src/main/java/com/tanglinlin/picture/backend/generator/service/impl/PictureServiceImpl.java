@@ -16,10 +16,14 @@ import com.tanglinlin.picture.backend.generator.mapper.PictureMapper;
 import com.tanglinlin.picture.backend.generator.service.PictureService;
 import com.tanglinlin.picture.backend.generator.service.UserService;
 import com.tanglinlin.picture.backend.manager.FileManager;
+import com.tanglinlin.picture.backend.manager.upload.FilePictureUpload;
+import com.tanglinlin.picture.backend.manager.upload.PictureUploadTemplate;
+import com.tanglinlin.picture.backend.manager.upload.UrlPictureUpload;
 import com.tanglinlin.picture.backend.model.dto.file.UploadPictureResult;
 import com.tanglinlin.picture.backend.model.dto.picture.PictureQueryRequest;
 import com.tanglinlin.picture.backend.model.dto.picture.PictureReviewRequest;
 import com.tanglinlin.picture.backend.model.dto.picture.PictureUpdateRequest;
+import com.tanglinlin.picture.backend.model.dto.picture.PictureUploadRequest;
 import com.tanglinlin.picture.backend.model.enums.PictureReviewStatusEnum;
 import com.tanglinlin.picture.backend.model.vo.PictureVO;
 import jakarta.annotation.Resource;
@@ -46,19 +50,19 @@ public class PictureServiceImpl extends ServiceImpl<PictureMapper, Picture>
 
     @Resource
     private UserService userService;
-    private final FileManager fileManager;
+    @Resource
+    private FilePictureUpload filePictureUpload;
 
-    public PictureServiceImpl(FileManager fileManager) {
-        this.fileManager = fileManager;
-    }
+    @Resource
+    private UrlPictureUpload urlPictureUpload;
 
     @Override
-    public PictureVO uploadPicture(MultipartFile multipartFile, PictureUpdateRequest pictureUpdateRequest, User loginUser) {
+    public PictureVO uploadPicture(Object inputSource, PictureUploadRequest pictureUploadRequest, User loginUser) {
         ThrowUtils.throwIf(ObjectUtil.isNull(loginUser), ErrorCode.NOT_LOGIN_ERROR, "用户未登陆");
         //用于判别是新增还是更新图片
         Long pictureId = null;
-        if (pictureUpdateRequest != null) {
-            pictureId = pictureUpdateRequest.getId();
+        if (pictureUploadRequest.getId() != null) {
+            pictureId = pictureUploadRequest.getId();
         }
         //如果是更新图片，需要校验图片是否存在
         if (pictureId != null) {
@@ -68,19 +72,22 @@ public class PictureServiceImpl extends ServiceImpl<PictureMapper, Picture>
         //上传图片，得到信息
         // 按照用户id划分目录
         String uploadPathPrefix = String.format("public/%s", loginUser.getId());
-        UploadPictureResult uploadPictureResult = fileManager.uploadPicture(multipartFile, uploadPathPrefix);
+        //根据inputSource上传的类型区分上传类型
+        PictureUploadTemplate pictureUploadTemplate = filePictureUpload;
+        if(inputSource instanceof String){
+            pictureUploadTemplate = urlPictureUpload;
+        }
+        UploadPictureResult uploadPictureResult = pictureUploadTemplate.uploadPicture(inputSource, uploadPathPrefix);
         //构建入库的图片信息
         Picture picture = new Picture();
         picture.setUrl(uploadPictureResult.getUrl());
-        picture.setName(pictureUpdateRequest.getName());
+        picture.setName(pictureUploadRequest.getPicName());
         picture.setPicSize(uploadPictureResult.getPicSize());
         picture.setPicWidth(uploadPictureResult.getPicWidth());
         picture.setPicHeight(uploadPictureResult.getPicHeight());
         picture.setPicScale(uploadPictureResult.getPicScale());
         picture.setPicFormat(uploadPictureResult.getPicFormat());
         picture.setUserId(loginUser.getId());
-        picture.setIntroduction(pictureUpdateRequest.getIntroduction());
-        picture.setCategory(pictureUpdateRequest.getCategory());
         //补充审核参数
         fillReviewParams(picture, loginUser);
         //如果pictureId不为空，则表示更新图片，否则新增
