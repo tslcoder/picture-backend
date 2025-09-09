@@ -15,6 +15,7 @@ import com.tanglinlin.picture.backend.generator.domain.User;
 import com.tanglinlin.picture.backend.generator.mapper.PictureMapper;
 import com.tanglinlin.picture.backend.generator.service.PictureService;
 import com.tanglinlin.picture.backend.generator.service.UserService;
+import com.tanglinlin.picture.backend.manager.CosManager;
 import com.tanglinlin.picture.backend.manager.FileManager;
 import com.tanglinlin.picture.backend.manager.upload.FilePictureUpload;
 import com.tanglinlin.picture.backend.manager.upload.PictureUploadTemplate;
@@ -31,6 +32,8 @@ import org.jsoup.nodes.Document;
 import org.jsoup.nodes.Element;
 import org.jsoup.select.Elements;
 import org.springframework.beans.BeanUtils;
+import org.springframework.beans.factory.annotation.Autowired;
+import org.springframework.scheduling.annotation.Async;
 import org.springframework.stereotype.Service;
 import org.springframework.web.multipart.MultipartFile;
 
@@ -60,6 +63,8 @@ public class PictureServiceImpl extends ServiceImpl<PictureMapper, Picture>
 
     @Resource
     private UrlPictureUpload urlPictureUpload;
+    @Autowired
+    private CosManager cosManager;
 
     @Override
     public PictureVO uploadPicture(Object inputSource, PictureUploadRequest pictureUploadRequest, User loginUser) {
@@ -86,6 +91,7 @@ public class PictureServiceImpl extends ServiceImpl<PictureMapper, Picture>
         //构建入库的图片信息
         Picture picture = new Picture();
         picture.setUrl(uploadPictureResult.getUrl());
+        picture.setThumbnailUrl(uploadPictureResult.getThumbnailUrl());
         String picName = uploadPictureResult.getPicName();
         if (pictureUploadRequest != null && StrUtil.isNotBlank(pictureUploadRequest.getPicName())) {
             picName = pictureUploadRequest.getPicName();
@@ -324,6 +330,29 @@ public class PictureServiceImpl extends ServiceImpl<PictureMapper, Picture>
             }
         }
         return uploadCount;
+    }
+
+    @Override
+    @Async
+    public void clearPictureFile(Picture oldPicture) {
+        //判断该图片是否被多处引用
+        String oldPictureUrl = oldPicture.getUrl();
+        Long count = this.lambdaQuery()
+                .eq(Picture::getUrl, oldPictureUrl)
+                .count();
+        if (count > 1) {
+            return;
+        }
+        if (StrUtil.isNotBlank(oldPictureUrl)) {
+            //删除图片
+            cosManager.deleteObject(oldPictureUrl);
+        }
+        String oldPictureThumbnailUrl = oldPicture.getThumbnailUrl();
+        if (StrUtil.isNotBlank(oldPictureThumbnailUrl)) {
+            //删除缩略图
+            cosManager.deleteObject(oldPictureThumbnailUrl);
+        }
+
     }
 
 

@@ -1,7 +1,12 @@
 package com.tanglinlin.picture.backend.controller;
 
+import cn.hutool.core.util.ObjectUtil;
+import cn.hutool.core.util.RandomUtil;
+import cn.hutool.core.util.StrUtil;
 import cn.hutool.json.JSONUtil;
 import com.baomidou.mybatisplus.extension.plugins.pagination.Page;
+import com.github.benmanes.caffeine.cache.Cache;
+import com.github.benmanes.caffeine.cache.Caffeine;
 import com.tanglinlin.picture.backend.annotation.AuthCheck;
 import com.tanglinlin.picture.backend.common.BaseResponse;
 import com.tanglinlin.picture.backend.common.DeleteRequest;
@@ -14,6 +19,7 @@ import com.tanglinlin.picture.backend.generator.domain.Picture;
 import com.tanglinlin.picture.backend.generator.domain.User;
 import com.tanglinlin.picture.backend.generator.service.PictureService;
 import com.tanglinlin.picture.backend.generator.service.UserService;
+import com.tanglinlin.picture.backend.manager.PictureCacheManager;
 import com.tanglinlin.picture.backend.model.dto.picture.*;
 import com.tanglinlin.picture.backend.model.enums.PictureReviewStatusEnum;
 import com.tanglinlin.picture.backend.model.vo.PictureVO;
@@ -22,8 +28,13 @@ import io.swagger.v3.oas.annotations.tags.Tag;
 import jakarta.annotation.Resource;
 import jakarta.servlet.http.HttpServletRequest;
 import org.springframework.beans.BeanUtils;
+import org.springframework.data.redis.core.RedisTemplate;
+import org.springframework.data.redis.core.ValueOperations;
+import org.springframework.util.DigestUtils;
 import org.springframework.web.bind.annotation.*;
 import org.springframework.web.multipart.MultipartFile;
+
+import java.util.concurrent.TimeUnit;
 
 /**
  * @program: tanglin-picture-backend
@@ -42,6 +53,13 @@ public class PictureController {
     private UserService userService;
     @Resource
     private PictureService pictureService;
+
+    @Resource
+    private RedisTemplate redisTemplate;
+
+    @Resource
+    private PictureCacheManager pictureCacheManager;
+
 
     @PostMapping("/upload")
     @Operation(summary = "图片上传", description = "图片上传，只能管理员用户")
@@ -93,7 +111,7 @@ public class PictureController {
     @AuthCheck(mustRole = "admin")
     @Operation(summary = "更新图片", description = "更新图片，只能管理员可以更新")
     public BaseResponse<Boolean> updatePicture(@RequestBody PictureUpdateRequest pictureUpdateRequest
-            ,HttpServletRequest httpServletRequest) {
+            , HttpServletRequest httpServletRequest) {
         if (pictureUpdateRequest == null || pictureUpdateRequest.getId() <= 0) {
             throw new BusinessException(ErrorCode.PARAMS_ERROR);
         }
@@ -204,13 +222,28 @@ public class PictureController {
     @PostMapping("/upload/batch")
     @AuthCheck(mustRole = UserConstant.ADMIN_ROLE)
     public BaseResponse<Integer> uploadPictureByBatch(@RequestBody PictureUploadByBatchRequest pictureUploadByBatchRequest,
-                                                     HttpServletRequest request) {
+                                                      HttpServletRequest request) {
         if (pictureUploadByBatchRequest == null) {
             throw new BusinessException(ErrorCode.PARAMS_ERROR);
         }
         User loginUser = userService.getLoginUser(request);
         Integer count = pictureService.uploadPictureByBatch(pictureUploadByBatchRequest, loginUser);
         return ResultUtils.success(count);
+    }
+
+    @PostMapping("/list/page/vo/cache")
+    @Operation(summary = "获取图片列表", description = "根据查询条件获取图片列表")
+    public BaseResponse<Page<PictureVO>> listPictureVOByPageCache(@RequestBody PictureQueryRequest pictureQueryRequest,
+                                                                  HttpServletRequest httpServletRequest) {
+        long size = pictureQueryRequest.getPageSize();
+        // 限制爬虫
+        ThrowUtils.throwIf(size > 20, ErrorCode.PARAMS_ERROR);
+        //普通用户只能查看已过审的图片
+        pictureQueryRequest.setReviewStatus(PictureReviewStatusEnum.PASS.getValue());
+
+        Page<PictureVO> pagePictureByCache = pictureCacheManager.getPagePictureByCache(pictureQueryRequest, httpServletRequest);
+        return ResultUtils.success(pagePictureByCache);
+
     }
 
 }
