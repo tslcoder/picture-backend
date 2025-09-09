@@ -125,5 +125,8 @@ public class Picture implements Serializable {
     @TableField(exist = false)
     private static final long serialVersionUID = 1L;
 
-
+    /**
+     * 空间Id
+     */
+    private Long spaceId;
 }

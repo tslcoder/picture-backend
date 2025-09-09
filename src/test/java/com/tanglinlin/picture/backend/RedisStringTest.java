@@ -21,6 +21,7 @@ public class RedisStringTest {
     @Autowired
     private RedisTemplate redisTemplate;
 
+
     @Test
     public void testRedisStringOperation() {
         //获取操作对象

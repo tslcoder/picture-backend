@@ -125,6 +125,12 @@
             <groupId>org.springframework.session</groupId>
             <artifactId>spring-session-data-redis</artifactId>
         </dependency>
+        <!-- Redisson 分布式锁 -->
+        <dependency>
+            <groupId>org.redisson</groupId>
+            <artifactId>redisson-spring-boot-starter</artifactId>
+            <version>3.23.2</version> <!-- 版本号可以根据需要调整 -->
+        </dependency>
 
 
 

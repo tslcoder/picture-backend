@@ -241,7 +241,7 @@ public class PictureController {
         //普通用户只能查看已过审的图片
         pictureQueryRequest.setReviewStatus(PictureReviewStatusEnum.PASS.getValue());
 
-        Page<PictureVO> pagePictureByCache = pictureCacheManager.getPagePictureByCache(pictureQueryRequest, httpServletRequest);
+        Page<PictureVO> pagePictureByCache = pictureCacheManager.getPagePictureByCacheWithRedisson(pictureQueryRequest, httpServletRequest);
         return ResultUtils.success(pagePictureByCache);
 
     }
